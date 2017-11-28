@@ -1,7 +1,7 @@
 
 # sasap-test
--apples
-  -fuji
-   -gala
- -bananas
- -oranges
++- apples
++ + fuji
++ + gala
+ + bananas
+ + oranges
