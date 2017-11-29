@@ -1,0 +1,137 @@
+---
+title: "data cleaning"
+author: "Jen Shriver"
+date: "November 28, 2017"
+output:
+  pdf_document: default
+  html_document: default
+---
+```{r}
+# reading in catch data
+catch<- read.csv("catch.csv", stringsAsFactors = FALSE)
+```
+
+```{r}
+library(dplyr)
+library(tidyr)
+```
+
+```{r}
+catch<- catch %>% # we're selecting all the columns except all and notesregcode
+  select(-All, -notesRegCode) 
+```
+
+```{r}
+#creating and switching to a new structure
+catch <- catch %>%
+  gather(species,catch, -Region, -Year) 
+
+summary(catch) #catch came in as a charchter so needed to make integer
+catch_integers <- as.integer(catch$catch)
+which(is.na(catch_integers))
+catch[401,"catch"] <- 1
+catch[401,]
+```
+```{r}
+catch <- catch %>%
+  mutate(catch = as.integer(catch))
+summary(catch)
+
+```
+```{r}
+catch <- catch %>%
+  mutate(catch=catch*1000)
+```
+
+```{r}
+catch %>%
+  group_by(Region)%>%
+  summarize(mean_catch = mean(catch))
+```
+
+```{r}
+
+#creating a new table sample_size with the number of
+sample_size <- catch %>%
+  group_by(Region) %>%
+  summarize(n = n())
+```
+
+Now going to filter for just South South East "SSE"
+```{r}
+sse_catchs <-  catch %>%
+  filter(Region =="SSE")
+View(sse_catchs) #if I want to view
+```
+
+Filter for large catches greater than  1,000
+```{r}
+large_catches <-  catch %>%
+  filter (catch> 1e07)
+View(large_catches)
+summary(large_catches)
+```
+
+Filter for large catch and in SE
+```{r}
+large_SSE_Catch <- catch %>%
+  filter(catch > 1e07 & Region == "SSE")
+View(large_SSE_Catch)
+summarise(large_SSE_Catch)
+```
+How to sort
+```{r}
+large_SSE_Catch %>%
+  arrange(species)
+View(large_SSE_Catch)
+```
+
+Redaing in meta data so we can add in region definitions
+Doing a left join by Region
+```{r}
+# reading in catch data
+region_defs<- read.csv("meta.csv", stringsAsFactors = FALSE)
+View(region_defs)
+
+catch %>% 
+  group_by(Region) %>% 
+  summarise(total_catch = sum(catch)) %>% 
+  left_join(region_defs, by = c("Region"="code"))
+
+```
+
+Splitting doing substring
+```{r}
+dates_df <- data.frame(date = c("5/24/1930",
+                                "5/25/1930",
+                                "5/26/1930",
+                                "5/27/1930",
+                                "5/28/1930"),
+                       stringsAsFactors = FALSE)
+
+dates_df <- dates_df %>% 
+  separate(date, c("month", "day", "year"), "/")
+
+
+
+dates_df %>% 
+  unite(date, month, day, year, sep = "/")
+```
+
+Now how you do it all in one fell swoop
+```{r}
+# reading in catch data
+catch<- read.csv("catch.csv", stringsAsFactors = FALSE)
+# reading in catch data
+region_defs<- read.csv("meta.csv", stringsAsFactors = FALSE)
+
+catch %>%
+  select(-All, -notesRegCode) %>% 
+  gather(species, catch, -Region, -Year) %>%
+  mutate(catch = ifelse(catch == "I", 1, catch)) %>% 
+  mutate(catch = as.integer(catch)) %>% 
+  group_by(Region) %>% 
+  summarize(mean_catch = mean(catch)) %>% 
+  left_join(region_defs, by = c("Region" = "code"))
+```
+
